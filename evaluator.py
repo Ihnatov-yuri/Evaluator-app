@@ -66,15 +66,16 @@ class RunEvaluationResult:
     
     @property
     def average_score(self) -> float:
-        """Calculate average score across all metrics"""
-        scores = [
-            self.detailed_scores.factual_accuracy,
-            self.detailed_scores.completeness,
-            self.detailed_scores.order_sequence,
-            self.detailed_scores.relevance,
-            self.detailed_scores.overall_quality
-        ]
-        return sum(scores) / len(scores)
+        """Calculate weighted average score with Factual Accuracy at 60%"""
+        # Weighted scoring: Factual Accuracy 60%, others 10% each
+        weighted_score = (
+            self.detailed_scores.factual_accuracy * 0.60 +  # 60%
+            self.detailed_scores.completeness * 0.10 +       # 10%
+            self.detailed_scores.order_sequence * 0.10 +     # 10%
+            self.detailed_scores.relevance * 0.10 +          # 10%
+            self.detailed_scores.overall_quality * 0.10      # 10%
+        )
+        return weighted_score
 
 @dataclass 
 class TestCaseResult:
@@ -296,6 +297,18 @@ Begin evaluation:"""
                 relevance=int(relevance_match.group(1)) if relevance_match else 0,
                 overall_quality=int(overall_match.group(1)) if overall_match else 0
             )
+            
+            # Verify evaluation consistency with numerical scores
+            avg_score = scores.average_score
+            if avg_score >= 7 and evaluation not in ["CORRECT"]:
+                logger.warning(f"Score {avg_score:.1f} suggests CORRECT but got {evaluation}. Adjusting to CORRECT.")
+                evaluation = "CORRECT"
+            elif 4 <= avg_score < 7 and evaluation not in ["PARTIAL"]:
+                logger.warning(f"Score {avg_score:.1f} suggests PARTIAL but got {evaluation}. Adjusting to PARTIAL.")
+                evaluation = "PARTIAL"
+            elif avg_score < 4 and evaluation not in ["INCORRECT"]:
+                logger.warning(f"Score {avg_score:.1f} suggests INCORRECT but got {evaluation}. Adjusting to INCORRECT.")
+                evaluation = "INCORRECT"
             
             # Extract RAG verification section
             rag_match = re.search(r'RAG_VERIFICATION:(.*?)REASONING:', evaluation_text, re.DOTALL | re.IGNORECASE)
@@ -543,7 +556,7 @@ Begin evaluation:"""
         # Print table header
         print("\n📋 DETAILED RESULTS TABLE")
         print("-"*140)
-        header = f"{'ID':<8} {'Run':<4} {'Result':<10} {'Fact':<5} {'Comp':<5} {'Order':<5} {'Rel':<5} {'Qual':<5} {'Avg':<5} {'Time':<6} {'Input':<40}"
+        header = f"{'ID':<8} {'Run':<4} {'Result':<10} {'Fact':<5} {'Comp':<5} {'Order':<5} {'Rel':<5} {'Qual':<5} {'W.Avg':<5} {'Time':<6} {'Input':<40}"
         print(header)
         print("-"*140)
         
@@ -572,7 +585,8 @@ Begin evaluation:"""
                 print(row)
         
         print("-"*140)
-        print("📝 Legend: Fact=Factual Accuracy, Comp=Completeness, Order=Order/Sequence, Rel=Relevance, Qual=Overall Quality")
+        print("📝 Legend: Fact=Factual Accuracy (60%), Comp=Completeness (10%), Order=Order/Sequence (10%), Rel=Relevance (10%), Qual=Overall Quality (10%)")
+        print("📊 W.Avg = Weighted Average Score (Factual Accuracy has 60% weight)")
         print("-"*140)
         
         # Print test case summaries
