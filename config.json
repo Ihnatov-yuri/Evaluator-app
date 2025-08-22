@@ -6,19 +6,25 @@
   },
   "model_parameters": {
     "temperature": 0.3,
-    "max_tokens": 1500,
+    "max_tokens": 2000,
     "top_p": 0.9,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0,
     "reasoning_level": "medium"
   },
-  "evaluation": {
+    "evaluation": {
     "system_prompt_file": "system_prompt.txt",
-    "user_data_file": "user_test_data.txt", 
+    "user_data_file": "user_test_data.txt",
     "knowledge_base_file": "knowledge_base.txt",
     "timeout_seconds": 30,
     "retry_attempts": 3,
-    "delay_between_tests": 2
+    "delay_between_tests": 2,
+    "versioning": {
+      "enabled": true,
+      "date_format": "%Y%m%d_%H%M%S",
+      "keep_latest_copy": true,
+      "archive_folder": "evaluation_history"
+    }
   },
   "rag": {
     "enabled": true,

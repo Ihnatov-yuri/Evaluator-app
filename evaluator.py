@@ -10,6 +10,10 @@ import json
 import time
 import logging
 import sys
+import os
+import shutil
+import re
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
@@ -112,6 +116,84 @@ class LMStudioEvaluator:
         self.config = self._load_config(config_path)
         self.client = self._initialize_client()
         self.prompt_template = self._load_prompt_template()
+        self.evaluation_timestamp = datetime.now()
+        self.version_string = self._generate_version_string()
+        
+        # Create archive folder if versioning is enabled
+        if self.config["evaluation"]["versioning"]["enabled"]:
+            archive_folder = self.config["evaluation"]["versioning"]["archive_folder"]
+            os.makedirs(archive_folder, exist_ok=True)
+            logger.info(f"Evaluation version: {self.version_string}")
+    
+    def _generate_version_string(self) -> str:
+        """Generate version string based on timestamp"""
+        if self.config["evaluation"]["versioning"]["enabled"]:
+            date_format = self.config["evaluation"]["versioning"]["date_format"]
+            return self.evaluation_timestamp.strftime(date_format)
+        return "latest"
+    
+    def _get_versioned_filename(self, base_filename: str) -> str:
+        """Generate versioned filename"""
+        if not self.config["evaluation"]["versioning"]["enabled"]:
+            return base_filename
+        
+        name, ext = os.path.splitext(base_filename)
+        return f"{name}_{self.version_string}{ext}"
+    
+    def _get_archive_path(self, filename: str) -> str:
+        """Get path in archive folder"""
+        if self.config["evaluation"]["versioning"]["enabled"]:
+            archive_folder = self.config["evaluation"]["versioning"]["archive_folder"]
+            return os.path.join(archive_folder, filename)
+        return filename
+    
+    def list_evaluation_versions(self) -> List[str]:
+        """List all available evaluation versions in archive folder"""
+        if not self.config["evaluation"]["versioning"]["enabled"]:
+            return ["Versioning not enabled"]
+        
+        archive_folder = self.config["evaluation"]["versioning"]["archive_folder"]
+        if not os.path.exists(archive_folder):
+            return ["No archive folder found"]
+        
+        versions = set()
+        for filename in os.listdir(archive_folder):
+            if '_' in filename:
+                # Extract version from filename (assumes format: name_version.ext)
+                parts = filename.split('_')
+                if len(parts) >= 2:
+                    version_part = parts[-1].split('.')[0]  # Remove extension
+                    if version_part.replace('_', '').isdigit():  # Check if it's a timestamp
+                        versions.add(version_part)
+        
+        return sorted(list(versions), reverse=True)  # Most recent first
+    
+    def cleanup_old_versions(self, keep_count: int = 10):
+        """Keep only the most recent N versions, delete older ones"""
+        if not self.config["evaluation"]["versioning"]["enabled"]:
+            logger.warning("Versioning not enabled, cannot cleanup versions")
+            return
+        
+        versions = self.list_evaluation_versions()
+        if len(versions) <= keep_count:
+            logger.info(f"Only {len(versions)} versions found, no cleanup needed")
+            return
+        
+        archive_folder = self.config["evaluation"]["versioning"]["archive_folder"]
+        versions_to_delete = versions[keep_count:]  # Keep first N, delete rest
+        
+        deleted_count = 0
+        for version in versions_to_delete:
+            for filename in os.listdir(archive_folder):
+                if f"_{version}." in filename:
+                    file_path = os.path.join(archive_folder, filename)
+                    try:
+                        os.remove(file_path)
+                        deleted_count += 1
+                    except OSError as e:
+                        logger.warning(f"Could not delete {file_path}: {e}")
+        
+        logger.info(f"Cleaned up {deleted_count} old version files, kept {keep_count} most recent versions")
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from JSON file"""
@@ -616,7 +698,11 @@ Begin evaluation:"""
         """Export results to CSV format for easy analysis with multi-run support"""
         import csv
         
-        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        # Generate versioned filename
+        versioned_filename = self._get_versioned_filename(filename)
+        archive_path = self._get_archive_path(versioned_filename)
+        
+        with open(archive_path, 'w', newline='', encoding='utf-8') as csvfile:
             fieldnames = [
                 'test_id', 'run_number', 'timestamp', 'evaluation', 'factual_accuracy', 'completeness', 
                 'order_sequence', 'relevance', 'overall_quality', 'average_score',
@@ -668,11 +754,21 @@ Begin evaluation:"""
                     
                     writer.writerow(row)
         
-        logger.info(f"Multi-run results exported to {filename}")
+        # Copy to current filename if keep_latest_copy is enabled
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            shutil.copy2(archive_path, filename)
+        
+        logger.info(f"Multi-run results exported to {archive_path}")
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            logger.info(f"Latest copy saved as {filename}")
     
     def generate_final_report(self, results: List[TestCaseResult], filename: str = "evaluation_report.md"):
         """Generate a comprehensive final report in Markdown format"""
         from datetime import datetime
+        
+        # Generate versioned filename
+        versioned_filename = self._get_versioned_filename(filename)
+        archive_path = self._get_archive_path(versioned_filename)
         
         # Calculate statistics
         total_test_cases = len(results)
@@ -819,17 +915,26 @@ Begin evaluation:"""
 """
         
         # Write report to file
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(archive_path, 'w', encoding='utf-8') as f:
             f.write(report)
         
-        logger.info(f"Final report saved to {filename}")
-        return filename
+        # Copy to current filename if keep_latest_copy is enabled
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            shutil.copy2(archive_path, filename)
+        
+        logger.info(f"Final report saved to {archive_path}")
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            logger.info(f"Latest copy saved as {filename}")
+        return archive_path
     
     def update_progressive_report(self, results: List[TestCaseResult], completed: int, total: int):
         """Update the progressive report file as test cases complete"""
         from datetime import datetime
         
         filename = "evaluation_report_progress.md"
+        # Generate versioned filename
+        versioned_filename = self._get_versioned_filename(filename)
+        archive_path = self._get_archive_path(versioned_filename)
         
         # Calculate current statistics
         total_test_cases = len(results)
@@ -951,10 +1056,17 @@ All test cases have been processed. Check the final report for complete analysis
 """
         
         # Write progressive report to file
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(archive_path, 'w', encoding='utf-8') as f:
             f.write(report)
         
+        # Copy to current filename if keep_latest_copy is enabled
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            shutil.copy2(archive_path, filename)
+        
         logger.info(f"Progressive report updated: {completed}/{total} test cases completed")
+        logger.info(f"Report saved to {archive_path}")
+        if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            logger.info(f"Latest copy saved as {filename}")
 
 def main():
     """Main function to run the evaluator"""
@@ -1011,8 +1123,17 @@ def main():
                 
                 results_data.append(result_dict)
         
-        with open("evaluation_results.json", "w") as f:
+        # Save JSON with versioning
+        json_filename = "evaluation_results.json"
+        versioned_json_filename = evaluator._get_versioned_filename(json_filename)
+        json_archive_path = evaluator._get_archive_path(versioned_json_filename)
+        
+        with open(json_archive_path, "w") as f:
             json.dump(results_data, f, indent=2)
+        
+        # Copy to current filename if keep_latest_copy is enabled
+        if evaluator.config["evaluation"]["versioning"]["enabled"] and evaluator.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            shutil.copy2(json_archive_path, json_filename)
         
         # Export to CSV for easy analysis
         evaluator.export_results_to_csv(results)
@@ -1020,7 +1141,10 @@ def main():
         # Generate comprehensive final report
         report_file = evaluator.generate_final_report(results)
         
-        logger.info(f"Multi-run results saved to evaluation_results.json, evaluation_results.csv, and {report_file}")
+        logger.info(f"Multi-run results saved with version {evaluator.version_string}")
+        logger.info(f"Files: {json_archive_path}, CSV, and {report_file}")
+        if evaluator.config["evaluation"]["versioning"]["enabled"] and evaluator.config["evaluation"]["versioning"]["keep_latest_copy"]:
+            logger.info("Latest copies also saved without version suffix")
         
     except Exception as e:
         logger.error(f"Evaluation failed: {e}")
