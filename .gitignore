@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Generated Files
+evaluation_results.json
+evaluation_results.csv
+evaluation_report.md
+evaluation_report_progress.md
+evaluator.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary Files
+*.tmp
+*.temp

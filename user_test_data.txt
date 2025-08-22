@@ -1,0 +1,1358 @@
+
+Bots
+LLMs
+Guide
+Admin
+Tenants
+
+Hire
+
+FAB
+Settings
+Prompt
+Instructions
+Data
+RAG
+Guardrails
+Test
+Statistics
+Test Suites
+Evaluate
+Test Suite Evaluation
+Evaluate the performance of your LLM on a test suite.
+
+FAB v2
+Test cases:95
+Success rate: 0%
+Test Case
+1
+Input
+Context is empty: show me anything you have
+Reference
+Do NOT show offers; reply that you couldn’t find any offers at the moment as the context is empty.
+Run 1
+
+22/08/2025 - 13:50:54
+{ "offers": [], "text": "I'm unable to show any offers at the moment. Please try again later." }
+Run 2
+
+22/08/2025 - 14:00:13
+{ "offers": [], "text": "I'm unable to provide any offers at the moment. Please try again later or specify a different request." }
+Test Case
+2
+Input
+Offers in a city that doesn’t exist: Atlantisburg, UAE
+Reference
+Decline with 'couldn’t find offers for that location'; do NOT guess another city; no offers.
+Run 1
+
+22/08/2025 - 13:50:50
+{ "offers": [], "text": "No offers are currently available for Atlantisburg, UAE. Could you tell me a bit more about the kind of offers you have in mind?" }
+Run 2
+
+22/08/2025 - 14:00:08
+{ "offers": [], "text": "No offers are currently available for Atlantisburg, UAE." }
+Test Case
+3
+Input
+Theme park brunch offers in Dubai
+Reference
+Cross-category conflict (theme parks are ENTERTAINMENT; brunch is FOOD & DRINK). If no such cross-listed offers exist, reply that none are available; no offers.
+Run 1
+
+22/08/2025 - 13:50:45
+{ "offers": [], "text": "No offers are currently available for theme park brunch in Dubai." }
+Run 2
+
+22/08/2025 - 14:00:03
+{ "offers": [], "text": "No offers are currently available for theme park brunch in Dubai." }
+Test Case
+4
+Input
+Careem offers in UAE — not rides, not coffee
+Reference
+Both Careem Travel [226] and Careem Coffee [211] are excluded; respond that you can’t find offers for that combination; do NOT switch brands.
+Run 1
+
+22/08/2025 - 13:50:42
+{ "offers": [ "209", "210" ], "text": "Here are some Careem offers in the UAE that are not related to rides or coffee." }
+Run 2
+
+22/08/2025 - 14:00:00
+{ "offers": [ "209", "210" ], "text": "Here are some Careem offers in the UAE that are not related to rides or coffee." }
+Test Case
+5
+Input
+Platinum Deluxe cardholder exclusive movie offers
+Reference
+Unknown/unsupported card type; do NOT mention cards; say you can’t help with that specific card filter; optionally suggest searching without it; no offers.
+Run 1
+
+22/08/2025 - 13:50:36
+{ "offers": [], "text": "No offers are currently available for Platinum Deluxe cardholders in the movie category." }
+Run 2
+
+22/08/2025 - 13:59:56
+{ "offers": [ "94", "96", "95" ], "text": "Here are some exclusive movie offers you might enjoy." }
+Test Case
+6
+Input
+Offers that are cashback-only AND not-cashback-only
+Reference
+Contradictory filter; respond you can’t help due to conflicting criteria; no offers.
+Run 1
+
+22/08/2025 - 13:50:30
+{ "offers": [], "text": "It seems like there's a contradiction in your request. Could you clarify whether you're looking for cashback-only offers or offers that are not cashback-only?" }
+Run 2
+
+22/08/2025 - 13:59:31
+{ "offers": [], "text": "It seems like your request is a bit contradictory. Could you clarify what type of offers you're looking for?" }
+Test Case
+7
+Input
+Coffee offers in UAE — exclude [107,147,156,161,205,206,207,211,236,241] and any remaining coffee merchants
+Reference
+Since the user excluded every valid coffee option, respond that no additional offers are available; do NOT switch category.
+Run 1
+
+22/08/2025 - 13:50:26
+{ "offers": [ "144", "166" ], "text": "Here are some coffee offers available in the UAE, excluding the ones you mentioned." }
+Run 2
+
+22/08/2025 - 13:59:27
+{ "offers": [ "144", "166" ], "text": "Here are some coffee offers available in UAE." }
+Test Case
+8
+Input
+Show me only expired cinema offers in UAE
+Reference
+Decline: never show expired offers; respond that no offers are available for that request.
+Run 1
+
+22/08/2025 - 13:50:21
+{ "offers": [], "text": "No offers are currently available for expired cinema offers in UAE." }
+Run 2
+
+22/08/2025 - 13:59:23
+{ "offers": [], "text": "No offers are currently available for expired cinema offers in UAE." }
+Test Case
+9
+Input
+UAE offers — I’m in France and I do NOT confirm switching countries
+Reference
+Do NOT show UAE offers; respond that you cannot show international offers without confirmation; no offers.
+Run 1
+
+22/08/2025 - 13:50:16
+{ "offers": [], "text": "No offers are currently available for UAE in France." }
+Run 2
+
+22/08/2025 - 13:59:20
+{ "offers": [], "text": "No offers are currently available for UAE in France." }
+Test Case
+10
+Input
+Airport entertainment offers (lounges only)
+Reference
+Explain that airport lounges [77] are TRAVEL services, not entertainment; decline to provide entertainment offers matching that filter; no offers.
+Run 1
+
+22/08/2025 - 13:50:13
+{ "offers": [], "text": "No offers are currently available for airport entertainment lounges in your location." }
+Run 2
+
+22/08/2025 - 13:59:13
+{ "offers": [], "text": "No offers are currently available for airport entertainment lounges." }
+Test Case
+11
+Input
+Hertz offers in the UAE
+Reference
+Return NO offers (no Hertz in UAE dataset). Do not substitute with other car rental brands; state no Hertz offers available in UAE.
+Run 1
+
+22/08/2025 - 13:50:09
+{ "offers": [], "text": "No offers are currently available for Hertz in UAE." }
+Run 2
+
+22/08/2025 - 13:59:10
+{ "offers": [], "text": "No offers are currently available for Hertz in UAE." }
+Test Case
+12
+Input
+Car rental offers in Italy
+Reference
+Return NO offers (CAR RENTAL items are UAE-only). Do not show 'Hertz Italy' [34] because it is TRAVEL category; state no car rental offers are available for Italy.
+Run 1
+
+22/08/2025 - 13:50:05
+{ "offers": [], "text": "Would you like to see offers in another country?" }
+Run 2
+
+22/08/2025 - 13:59:06
+{ "offers": [], "text": "Would you like to see offers in another country?" }
+Test Case
+13
+Input
+Movie offers (but not cinema)
+Reference
+Explain that 'movie offers' implies cinema; since 'not cinema' conflicts with the request, say you can’t help with that request; no offers.
+Run 1
+
+22/08/2025 - 13:50:01
+{ "offers": [ "141", "198", "130", "194", "134" ], "text": "Here are some offers for entertainment experiences beyond cinema in the UAE." }
+Run 2
+
+22/08/2025 - 13:59:03
+{ "offers": [ "141", "198", "130", "194", "134" ], "text": "Here are some offers for entertainment experiences that aren't cinema-related in the UAE." }
+Test Case
+14
+Input
+Movie offers in UAE in Paris
+Reference
+Politely explain the request has conflicting locations and cannot be fulfilled as-is; ask the user to pick a single country/city; do NOT show offers.
+Run 1
+
+22/08/2025 - 13:49:56
+{ "offers": [], "text": "No offers are currently available for movies in Paris. Would you like to see offers in another location?" }
+Run 2
+
+22/08/2025 - 13:58:59
+{ "offers": [], "text": "No offers are currently available for movie offers in Paris. Would you like to see offers in another location?" }
+Test Case
+15
+Input
+Sports experiences at/near Dubai Mall
+Reference
+Return ENTERTAINMENT sports venues like Zabeel Sports District [69], Ekart Zabeel [65]; exclude gyms or non-listed sports retailers.
+Run 1
+
+22/08/2025 - 13:49:51
+{ "offers": [ "69", "67", "65" ], "text": "Here are some sports experiences you can enjoy near Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:58:56
+{ "offers": [ "69", "67", "98" ], "text": "Here are some sports experiences available at or near Dubai Mall." }
+Test Case
+16
+Input
+Art attractions in Dubai
+Reference
+Return ENTERTAINMENT like Arte museum [141]; exclude FASHION brands.
+Run 1
+
+22/08/2025 - 13:49:46
+{ "offers": [ "141" ], "text": "Here's an offer for an immersive experience at the Arte museum in Dubai." }
+Run 2
+
+22/08/2025 - 13:58:53
+{ "offers": [ "141" ], "text": "Explore immersive experiences at Arte Museum in Dubai Mall with a cashback offer." }
+Test Case
+17
+Input
+Travel booking websites in UAE
+Reference
+Return TRAVEL aggregators such as Cleartrip.ae [58], Cleartrip [232], MakeMyTrip [229]; exclude CAR RENTAL brands.
+Run 1
+
+22/08/2025 - 13:49:42
+{ "offers": [ "229", "118", "58", "232" ], "text": "Here are some offers available for travel booking websites in the UAE." }
+Run 2
+
+22/08/2025 - 13:58:49
+{ "offers": [ "229", "118", "58", "232" ], "text": "Here are some offers available for travel booking websites in the UAE." }
+Test Case
+18
+Input
+Car rental vs travel: car rental in UAE only
+Reference
+Return CAR RENTAL only (e.g., Avis [59], Europcar [230], Rentalcars.com [231], Lumiere [164]); exclude TRAVEL entries like Hertz [3,34].
+Run 1
+
+22/08/2025 - 13:49:37
+{ "offers": [ "164", "59" ], "text": "Here are some car rental offers available in the UAE for you to explore." }
+Run 2
+
+22/08/2025 - 13:58:46
+{ "offers": [ "164", "59", "231", "230" ], "text": "Here are some car rental offers available in the UAE." }
+Test Case
+19
+Input
+Brunch offers at Istanbul hotels
+Reference
+Return FOOD & DRINK at hotels like Divan Istanbul Hotel [50] if brunch/dining; do NOT return spa-only or room-rate TRAVEL offers.
+Run 1
+
+22/08/2025 - 13:49:33
+{ "offers": [ "50" ], "text": "Here's an offer for dining at a luxury hotel in Istanbul." }
+Run 2
+
+22/08/2025 - 13:58:43
+{ "offers": [ "50" ], "text": "If you're looking for brunch options at hotels in Istanbul, you might be interested in this offer." }
+Test Case
+20
+Input
+Coffee-only deals in UAE (no desserts/pastry)
+Reference
+Return UAE coffee merchants such as [107,147,156,161,205,206,207,211,236,241]; exclude dessert-first venues like Kadayifzade Sweets [160].
+Run 1
+
+22/08/2025 - 13:49:28
+{ "offers": [ "156", "147", "207" ], "text": "Here are some coffee-only deals available in the UAE." }
+Run 2
+
+22/08/2025 - 13:58:39
+{ "offers": [ "156", "147", "207" ], "text": "Here are some coffee-only deals available in the UAE." }
+Test Case
+21
+Input
+Kids classes in UAE
+Reference
+Return EDUCATION offers like Lingo kids [104]; exclude ENTERTAINMENT attractions.
+Run 1
+
+22/08/2025 - 13:49:24
+{ "offers": [ "104" ], "text": "Here's an offer for kids' learning adventures in the UAE." }
+Run 2
+
+22/08/2025 - 13:58:36
+{ "offers": [ "63", "64", "102" ], "text": "Here are some offers for kids' activities in the UAE." }
+Test Case
+22
+Input
+Kids entertainment in UAE (no classes)
+Reference
+Return ENTERTAINMENT for kids (e.g., KidZania [63/102], Legoland [124], Legoland Waterpark [62], Wild Wadi [121]); explicitly exclude EDUCATION like Lingo kids [104].
+Run 1
+
+22/08/2025 - 13:49:21
+{ "offers": [ "63", "64", "102" ], "text": "Here are some offers for kids entertainment in the UAE that you might enjoy." }
+Run 2
+
+22/08/2025 - 13:58:32
+{ "offers": [ "63", "64", "102" ], "text": "Here are some offers for kids entertainment in the UAE." }
+Test Case
+23
+Input
+Hotel offers near Hyde Park in London
+Reference
+Return TRAVEL hotel offers such as Mandarin Oriental Hyde Park, London [12] and STARHOTELS – The Gore London [43] if present; exclude theme parks.
+Run 1
+
+22/08/2025 - 13:49:16
+{ "offers": [], "text": "Would you like to see offers in another country?" }
+Run 2
+
+22/08/2025 - 13:58:28
+{ "offers": [], "text": "No offers are currently available for hotels near Hyde Park in London. Would you like to see offers in another location?" }
+Test Case
+24
+Input
+Park offers in London (theme parks & attractions only)
+Reference
+Return London attractions like London Eye [6], London Dungeon [28], Madame Tussauds London [53]; exclude hotels such as Mandarin Oriental Hyde Park [12]; cap 5.
+Run 1
+
+22/08/2025 - 13:49:13
+{ "offers": [ "19", "6" ], "text": "Here are some offers for theme parks and attractions in London." }
+Run 2
+
+22/08/2025 - 13:58:25
+{ "offers": [ "6", "28", "19", "53" ], "text": "Here are some offers for theme parks and attractions in London." }
+Test Case
+25
+Input
+Kidzania offers at Dubai Mall
+Reference
+Return KidZania Dubai [63] (and/or KidZania [102] if appropriate); ensure ENTERTAINMENT only; cap 5.
+Run 1
+
+22/08/2025 - 13:49:09
+{ "offers": [ "63" ], "text": "Here is an offer for KidZania at The Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:58:22
+{ "offers": [ "63" ], "text": "You can enjoy a 20% discount on entry tickets to Kidzania Dubai at The Dubai Mall." }
+Test Case
+26
+Input
+Dubai Aquarium deals — I already got [66], show more
+Reference
+Return the alternative Dubai Aquarium & Underwater Zoo offer [101]; exclude [66].
+Run 1
+
+22/08/2025 - 13:49:04
+{ "offers": [ "101" ], "text": "Here's another offer for Dubai Aquarium that you might find interesting." }
+Run 2
+
+22/08/2025 - 13:58:12
+{ "offers": [ "101" ], "text": "Here's another offer for Dubai Aquarium & Underwater Zoo you might find interesting." }
+Test Case
+27
+Input
+Dubai Ice Rink offers — I already saw [67], show more
+Reference
+Return the other Dubai Ice Rink offer [98]; exclude [67]; one sentence + IDs; cap 5; no repeats.
+Run 1
+
+22/08/2025 - 13:49:00
+{ "offers": [ "98" ], "text": "Here is another offer for Dubai Ice Rink you might be interested in." }
+Run 2
+
+22/08/2025 - 13:58:08
+{ "offers": [ "98" ], "text": "Here's another offer for Dubai Ice Rink you might find interesting." }
+Test Case
+28
+Input
+Planet offers in Dubai — attraction/nature only
+Reference
+Return ONLY The Green Planet [120] (ENTERTAINMENT); do NOT include Coffee Planet [147] or any cafés; one sentence + IDs; cap 5.
+Run 1
+
+22/08/2025 - 13:48:56
+{ "offers": [ "120" ], "text": "Explore the wonders of nature with this offer at The Green Planet in Dubai." }
+Run 2
+
+22/08/2025 - 13:58:03
+{ "offers": [ "120" ], "text": "Here's an offer for The Green Planet in Dubai, where you can enjoy a 20% discount on a day-pass." }
+Test Case
+29
+Input
+Planet offers in Dubai — coffee only
+Reference
+Return ONLY Coffee Planet [147] (FOOD & DRINK) and other UAE coffee merchants if needed; do NOT include The Green Planet [120] or any attractions; cap 5.
+Run 1
+
+22/08/2025 - 13:48:50
+{ "offers": [ "147" ], "text": "Here's a coffee offer in Dubai at Coffee Planet." }
+Run 2
+
+22/08/2025 - 13:58:00
+{ "offers": [ "147" ], "text": "Here's a coffee offer from Coffee Planet in Dubai." }
+Test Case
+30
+Input
+[System provides an empty Context/OfferArray] Show me any offer.
+Reference
+Do NOT share offers; say you couldn't find any offers at the moment per rules.
+Run 1
+
+22/08/2025 - 13:48:46
+{ "offers": [], "text": "I'm unable to provide any offers at the moment. Please check back later or explore the FAB app for more details." }
+Run 2
+
+22/08/2025 - 13:57:55
+{ "offers": [], "text": "I'm sorry, but there are no offers available at the moment." }
+Test Case
+31
+Input
+Find me a theme park offer for my kids.
+Reference
+Return family-friendly parks; if international is required, ask to confirm switch or encode confirmation; cap 5.
+Run 1
+
+22/08/2025 - 13:48:42
+{ "offers": [ "102", "63", "64" ], "text": "Here are some offers for theme parks that your kids might enjoy." }
+Run 2
+
+22/08/2025 - 13:57:52
+{ "offers": [ "124", "62", "102", "63", "125" ], "text": "Here are some theme park offers that you might enjoy with your kids in the UAE." }
+Test Case
+32
+Input
+Show me offers at Dubai Mall.
+Reference
+Prefer Merchant match; else search Keywords/Loc; return IDs located in Dubai Mall; cap 5.
+Run 1
+
+22/08/2025 - 13:48:38
+{ "offers": [ "66", "101", "98", "150", "141" ], "text": "Here are some offers available at Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:57:49
+{ "offers": [ "66", "101", "98", "150", "141" ], "text": "Here are some offers available at Dubai Mall." }
+Test Case
+33
+Input
+Italy hotel offers (Cashback)
+Reference
+Return ITA TRAVEL where Cashback=true; do NOT mention card.
+Run 1
+
+22/08/2025 - 13:48:33
+{ "offers": [], "text": "Would you like to see offers in another country?" }
+Run 2
+
+22/08/2025 - 13:57:44
+{ "offers": [], "text": "No offers are currently available for Italy hotel offers in your location. Would you like to see offers in another country?" }
+Test Case
+34
+Input
+Car rental in the UK
+Reference
+Return UK car-rental IDs; cap 5; UK only.
+Run 1
+
+22/08/2025 - 13:48:30
+{ "offers": [], "text": "Would you like to see offers in another country?" }
+Run 2
+
+22/08/2025 - 13:57:41
+{ "offers": [], "text": "No offers are currently available for car rental in the UK." }
+Test Case
+35
+Input
+Cinema at The Dubai Mall
+Reference
+Return Reel Cinemas by matching merchant+location; one sentence + IDs.
+Run 1
+
+22/08/2025 - 13:48:27
+{ "offers": [ "94" ], "text": "You can enjoy a cinema ticket for just AED 20 at Reel Cinemas located in The Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:57:38
+{ "offers": [ "94" ], "text": "You can enjoy a cinema ticket for just AED 20 at Reel Cinemas located in The Dubai Mall." }
+Test Case
+36
+Input
+UK theme park offers
+Reference
+Return UK ENTERTAINMENT theme-park/museum IDs; cap 5.
+Run 1
+
+22/08/2025 - 13:48:24
+{ "offers": [ "19" ], "text": "Here's an offer for LEGOLAND Windsor, a popular theme park in the UK." }
+Run 2
+
+22/08/2025 - 13:57:35
+{ "offers": [ "19", "52" ], "text": "Here are some offers for theme parks in the UK." }
+Test Case
+37
+Input
+France fashion offers (I confirm switching countries)
+Reference
+Since confirmation is given in the prompt, return FRA FASHION; cap 5; France only.
+Run 1
+
+22/08/2025 - 13:48:20
+{ "offers": [ "15", "48", "35", "55", "40" ], "text": "Here are some fashion offers available in France." }
+Run 2
+
+22/08/2025 - 13:57:32
+{ "offers": [ "15", "48", "35", "55", "40" ], "text": "Here are some fashion offers available in France." }
+Test Case
+38
+Input
+Show me offers in France.
+Reference
+Ask one concise confirmation question about switching to international offers; no offers displayed; avoid repeated sentences/phrases.
+Run 1
+
+22/08/2025 - 13:48:16
+{ "offers": [ "48", "35", "13", "55", "15" ], "text": "Here are some offers you can explore in France." }
+Run 2
+
+22/08/2025 - 13:57:28
+{ "offers": [ "48", "35", "13", "55", "15" ], "text": "Here are some offers you can explore in France." }
+Test Case
+39
+Input
+I’m in Abu Dhabi (24.4539, 54.3773) — coffee deals?
+Reference
+Return UAE coffee; may prioritize Abu Dhabi locations; do NOT mention coordinates; cap 5.
+Run 1
+
+22/08/2025 - 13:48:13
+{ "offers": [ "147", "205", "196", "193", "192" ], "text": "Here are some coffee deals you can enjoy in Abu Dhabi." }
+Run 2
+
+22/08/2025 - 13:57:25
+{ "offers": [ "147", "205", "196", "193", "192" ], "text": "Here are some coffee deals available in Abu Dhabi." }
+Test Case
+40
+Input
+Unknown card type — movie offers in UAE
+Reference
+Do not mention any card names/filters; still return UAE cinema [94,95,96]; one sentence + IDs; cap 5.
+Run 1
+
+22/08/2025 - 13:48:08
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie offers you can enjoy in the UAE." }
+Run 2
+
+22/08/2025 - 13:57:20
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie offers you can enjoy in the UAE." }
+Test Case
+41
+Input
+Coffee offers in UAE — I already got [147,156,161,241,206,207,211], show more.
+Reference
+Respond with 'No additional offers are available for your request in your location.' (pagination exhaustion).
+Run 1
+
+22/08/2025 - 13:48:04
+{ "offers": [ 236, 107, 166 ], "text": "Here are some additional coffee offers available in the UAE for you to explore." }
+Run 2
+
+22/08/2025 - 13:57:17
+{ "offers": [ "236", "107", "166", "196", "193" ], "text": "Here are some more coffee offers available in the UAE." }
+Test Case
+42
+Input
+Coffee offers in UAE — I already got [147,156,211], show more.
+Reference
+Return UAE coffee IDs excluding [147,156,211]; cap 5; no repeats.
+Run 1
+
+22/08/2025 - 13:48:00
+{ "offers": [ "207", "241", "144", "206", "161" ], "text": "Here are some additional coffee offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:57:13
+{ "offers": [ "207", "241", "144", "206", "161" ], "text": "Here are some additional coffee offers available in the UAE." }
+Test Case
+43
+Input
+Coffee deals in Dubai Marina
+Reference
+Prefer UAE coffee with Dubai Marina/JBR; then fill from UAE coffee set; cap 5.
+Run 1
+
+22/08/2025 - 13:47:55
+{ "offers": [], "text": "No offers are currently available for coffee in Dubai Marina." }
+Run 2
+
+22/08/2025 - 13:57:09
+{ "offers": [], "text": "No offers are currently available for coffee in Dubai Marina." }
+Test Case
+44
+Input
+Coffee offers in UAE
+Reference
+Return only UAE coffee/café IDs; cap 5; exclude unrelated items.
+Run 1
+
+22/08/2025 - 13:47:51
+{ "offers": [ "156", "147", "211", "241", "207" ], "text": "Here are some coffee offers available in UAE." }
+Run 2
+
+22/08/2025 - 13:57:06
+{ "offers": [ "156", "147", "211", "241", "207" ], "text": "Here are some coffee offers in the UAE you might enjoy." }
+Test Case
+45
+Input
+Entertainment in UAE (not movies)
+Reference
+Return non-cinema ENTERTAINMENT (e.g., Ekart 97, Dubai Ice Rink 98 if card constraints allow); exclude cinema IDs.
+Run 1
+
+22/08/2025 - 13:47:48
+{ "offers": [ "141", "65", "194", "128", "130" ], "text": "Here are some entertainment options in the UAE that don't involve movies." }
+Run 2
+
+22/08/2025 - 13:57:01
+{ "offers": [ "65", "69", "97", "100", "66" ], "text": "Here are some entertainment options in the UAE that aren't movies." }
+Test Case
+46
+Input
+Cinema offers valid this month (UAE)
+Reference
+Return non-expired UAE cinema IDs (e.g., 94,95,96); cap 5.
+Run 1
+
+22/08/2025 - 13:47:44
+{ "offers": [ "96", "95", "94" ], "text": "Here are some cinema offers available in the UAE this month." }
+Run 2
+
+22/08/2025 - 13:56:58
+{ "offers": [ "96", "95", "94" ], "text": "Here are some cinema offers you can enjoy this month in the UAE." }
+Test Case
+47
+Input
+Movie ticket offers in the UAE
+Reference
+Return ONLY cinema/movie IDs in UAE (e.g., Reel Cinemas 94, Cine Royal 95, Star Cinemas 96). Must not include non-movie entertainment.
+Run 1
+
+22/08/2025 - 13:47:41
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie ticket offers you can enjoy in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:54
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie ticket offers available in the UAE." }
+Test Case
+48
+Input
+I need offers for kids entertainment.
+Reference
+Return child-focused ENTERTAINMENT (e.g., theme parks); avoid generic adult entertainment.
+Run 1
+
+22/08/2025 - 13:47:37
+{ "offers": [ "63", "64", "102" ], "text": "Here are some offers for kids entertainment in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:51
+{ "offers": [ "63", "102", "64" ], "text": "Here are some offers for kids entertainment in the UAE." }
+Test Case
+49
+Input
+Any offers near me?
+Reference
+Prioritize user country. If none exist, trigger 'no local offers' flow.
+Run 1
+
+22/08/2025 - 13:47:32
+{ "offers": [], "text": "Could you tell me a bit more about the kind of offers you have in mind?" }
+Run 2
+
+22/08/2025 - 13:56:47
+{ "offers": [], "text": "Could you tell me a bit more about the kind of offers you have in mind?" }
+Test Case
+50
+Input
+What's available in the UAE?
+Reference
+Return up to 5 UAE offers because the user explicitly asked for UAE (even if user is abroad).
+Run 1
+
+22/08/2025 - 13:47:24
+{ "offers": [ "216", "91", "81", "123", "82" ], "text": "Here are some offers you can enjoy in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:44
+{ "offers": [ "216", "91", "81", "123", "82" ], "text": "Here are some offers you can explore in the UAE." }
+Test Case
+51
+Input
+Find me an offer that expired on 20-08-2025.
+Reference
+Do NOT return expired offers; say no offers available for that specific request.
+Run 1
+
+22/08/2025 - 13:47:21
+{ "offers": [], "text": "No offers are currently available with an expiry date of 20-08-2025." }
+Run 2
+
+22/08/2025 - 13:56:40
+{ "offers": [], "text": "No offers are currently available that expired on 20-08-2025." }
+Test Case
+52
+Input
+Find me an offer that expires on 21-08-2025.
+Reference
+Return IDs expiring on 21-08-2025 (still valid on that date); respect expiry rule.
+Run 1
+
+22/08/2025 - 13:47:17
+{ "offers": [], "text": "No offers are currently available that expire on 21-08-2025." }
+Run 2
+
+22/08/2025 - 13:56:37
+{ "offers": [], "text": "No offers are currently available that expire on 21-08-2025." }
+Test Case
+53
+Input
+travle ofers in uae
+Reference
+Correct the typo to 'travel offers' and proceed with UAE travel offers per rules.
+Run 1
+
+22/08/2025 - 13:47:14
+{ "offers": [ "229", "118", "58", "85", "228" ], "text": "Here are some travel offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:34
+{ "offers": [ "229", "118", "58", "85", "228" ], "text": "It looks like you meant 'travel offers.' Here are some travel offers available in the UAE." }
+Test Case
+54
+Input
+What are the best offers?
+Reference
+Politely decline ranking; offer to help find something specific per prompt rules.
+Run 1
+
+22/08/2025 - 13:47:11
+{ "offers": [], "text": "Could you tell me a bit more about the kind of offers you have in mind?" }
+Run 2
+
+22/08/2025 - 13:56:31
+{ "offers": [ "131", "169", "197" ], "text": "Here are some popular offers you might like in the UAE." }
+Test Case
+55
+Input
+Offers for GEMS cardholders.
+Reference
+Return only Gems=true offers; do NOT mention 'GEMS' in the text.
+Run 1
+
+22/08/2025 - 13:47:07
+{ "offers": [ "112", "111", "87", "113", "101" ], "text": "Here are some offers available for GEMS cardholders in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:27
+{ "offers": [ "112", "111", "87", "113", "101" ], "text": "Here are some offers available for GEMS cardholders in the UAE." }
+Test Case
+56
+Input
+Cashback offers for restaurants.
+Reference
+Return FOOD & DRINK IDs where Cashback=true; do NOT say 'Cashback' in the text.
+Run 1
+
+22/08/2025 - 13:47:04
+{ "offers": [ "115", "181", "206", "186", "145" ], "text": "Here are some cashback offers you can enjoy at various dining locations." }
+Run 2
+
+22/08/2025 - 13:56:12
+{ "offers": [ "115", "181", "206", "186", "145" ], "text": "Here are some cashback offers available for restaurants in the UAE." }
+Test Case
+57
+Input
+Any deals for my Indulge card?
+Reference
+Return only Indulge=true offers; do NOT mention the card name.
+Run 1
+
+22/08/2025 - 13:47:00
+{ "offers": [ "61", "100", "66", "68", "65" ], "text": "Here are some exciting deals you can enjoy with your card, including discounts at various attractions and dining spots in the UAE." }
+Run 2
+
+22/08/2025 - 13:56:09
+{ "offers": [ "61", "66", "68", "65", "67" ], "text": "Here are some deals you can enjoy with your card in the UAE." }
+Test Case
+58
+Input
+Find entertainment offers in Dubai.
+Reference
+Return up to 5 ENTERTAINMENT offer IDs scoped to Dubai/UAE per rules; acknowledge Dubai in sentence.
+Run 1
+
+22/08/2025 - 13:46:57
+{ "offers": [ "123", "125", "124", "121", "122" ], "text": "Here are some entertainment offers you can enjoy in Dubai." }
+Run 2
+
+22/08/2025 - 13:56:05
+{ "offers": [ "123", "125", "124", "121", "65" ], "text": "Here are some entertainment offers you can enjoy in Dubai." }
+Test Case
+59
+Input
+I'm looking for fashion deals.
+Reference
+Return up to 5 FASHION offer IDs; use user's keyword in the sentence; cap 5.
+Run 1
+
+22/08/2025 - 13:46:53
+{ "offers": [ "135", "136", "57", "240", "138" ], "text": "Here are some fashion deals you might be interested in." }
+Run 2
+
+22/08/2025 - 13:56:01
+{ "offers": [ "135", "136", "57", "240", "138" ], "text": "Here are some fashion deals you might be interested in." }
+Test Case
+60
+Input
+Show me some dining offers.
+Reference
+Return up to 5 FOOD & DRINK offer IDs valid for user/carrier rules; natural sentence; do NOT use 'related'.
+Run 1
+
+22/08/2025 - 13:46:49
+{ "offers": [ "148", "150", "149", "181", "115" ], "text": "Here are some dining offers you might be interested in." }
+Run 2
+
+22/08/2025 - 13:55:58
+{ "offers": [ "148", "150", "149", "181", "115" ], "text": "Here are some dining offers you might be interested in." }
+Test Case
+61
+Input
+Thank you
+Reference
+Reply briefly (e.g., 'You're welcome!'); no offers.
+Run 1
+
+22/08/2025 - 13:46:46
+{ "offers": [], "text": "No problem! Would you like to explore any specific offers today?" }
+Run 2
+
+22/08/2025 - 13:55:55
+{ "offers": [], "text": "No problem! Would you like to look at any specific offers today?" }
+Test Case
+62
+Input
+Hello
+Reference
+Reply with a short greeting and ask how to help; do NOT show offers.
+Run 1
+
+22/08/2025 - 13:46:42
+{ "offers": [], "text": "Hello! How can I assist you with credit card offers today?" }
+Run 2
+
+22/08/2025 - 13:55:52
+{ "offers": [], "text": "Hello! If you're interested in any specific credit card offers, feel free to let me know." }
+Test Case
+63
+Input
+[System provides an empty Context/OfferArray] Show me any offer.
+Reference
+Do NOT share offers; say you couldn't find any offers at the moment per rules.
+Run 1
+
+22/08/2025 - 13:46:38
+{ "offers": [], "text": "I'm sorry, but there are no offers available at the moment. Please check back later for updates." }
+Run 2
+
+22/08/2025 - 13:55:48
+{ "offers": [], "text": "I'm sorry, but there are no offers available at the moment. Please check back later for updates." }
+Test Case
+64
+Input
+Find me a theme park offer for my kids.
+Reference
+Return family-friendly parks (e.g., LEGOLAND 19 in UK if international is confirmed; else ask to confirm switch); if UAE family items exist, show those.
+Run 1
+
+22/08/2025 - 13:46:34
+{ "offers": [ "102", "63", "64" ], "text": "Here are some offers for theme parks that your kids might enjoy." }
+Run 2
+
+22/08/2025 - 13:55:45
+{ "offers": [ "124", "62", "102", "63", "125" ], "text": "Here are some exciting theme park offers for your kids in the UAE." }
+Test Case
+65
+Input
+Show me offers at Dubai Mall.
+Reference
+Prefer Merchant match; else search Keywords/Loc; return IDs located in Dubai Mall; cap 5.
+Run 1
+
+22/08/2025 - 13:46:29
+{ "offers": [ "66", "101", "150", "141", "94" ], "text": "Here are some offers available at Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:55:41
+{ "offers": [ "66", "101", "98", "150", "141" ], "text": "Here are some offers available at Dubai Mall." }
+Test Case
+66
+Input
+Italy hotel offers (Cashback)
+Reference
+Return ITA TRAVEL where Cashback=true (e.g., 24,26,27,31,20); do NOT mention card.
+Run 1
+
+22/08/2025 - 13:46:25
+{ "offers": [], "text": "No offers are currently available for hotels in Italy." }
+Run 2
+
+22/08/2025 - 13:55:37
+{ "offers": [], "text": "No offers are currently available for Italy hotel offers in your location." }
+Test Case
+67
+Input
+Car rental in the UK
+Reference
+Return UK car-rental IDs like Hertz (3); cap 5; UK only.
+Run 1
+
+22/08/2025 - 13:46:21
+{ "text": "Would you like to see offers in another country?" }
+Run 2
+
+22/08/2025 - 13:55:34
+{ "offers": [], "text": "No offers are currently available for car rental in the UK." }
+Test Case
+68
+Input
+Cinema at The Dubai Mall
+Reference
+Return Reel Cinemas (94) by matching merchant+location; one sentence + IDs.
+Run 1
+
+22/08/2025 - 13:46:17
+{ "offers": [ "94" ], "text": "You can enjoy a cinema ticket for just AED 20 at Reel Cinemas located in The Dubai Mall." }
+Run 2
+
+22/08/2025 - 13:55:30
+{ "offers": [ "94" ], "text": "You can enjoy a cinema ticket for just AED 20 at Reel Cinemas located in The Dubai Mall." }
+Test Case
+69
+Input
+UK theme park offers
+Reference
+Return UK ENTERTAINMENT theme-park/museum IDs (e.g., 19,28 plus others if present); cap 5.
+Run 1
+
+22/08/2025 - 13:46:12
+{ "offers": [ "19", "52" ], "text": "Here are some offers for theme parks in the UK." }
+Run 2
+
+22/08/2025 - 13:55:27
+{ "offers": [ "19" ], "text": "Here is an offer for LEGOLAND Windsor, a theme park in the UK." }
+Test Case
+70
+Input
+France fashion offers (I confirm switching countries)
+Reference
+Since confirmation is given in the prompt, return FRA FASHION (e.g., 15,29,35,48 if present); cap 5; France only.
+Run 1
+
+22/08/2025 - 13:46:09
+{ "offers": [ "15", "48", "35", "55", "40" ], "text": "Here are some fashion offers available in France." }
+Run 2
+
+22/08/2025 - 13:55:24
+{ "offers": [ "15", "48", "35", "55", "40" ], "text": "Here are some fashion offers available in France." }
+Test Case
+71
+Input
+Show me offers in France.
+Reference
+Ask one concise confirmation question about switching to international offers; no offers displayed; avoid repeated sentences/phrases.
+Run 1
+
+22/08/2025 - 13:46:04
+{ "offers": [ "48", "35", "13", "55", "15" ], "text": "Here are some offers you can enjoy in France." }
+Run 2
+
+22/08/2025 - 13:55:21
+{ "offers": [ "48", "35", "13", "55", "15" ], "text": "Here are some offers available in France." }
+Test Case
+72
+Input
+I’m in Abu Dhabi (24.4539, 54.3773) — coffee deals?
+Reference
+Return UAE coffee; may prioritize Abu Dhabi locations; do NOT mention coordinates; cap 5.
+Run 1
+
+22/08/2025 - 13:45:59
+{ "offers": [ "147", "205", "196", "193", "192" ], "text": "Here are some coffee deals available in Abu Dhabi for you to explore." }
+Run 2
+
+22/08/2025 - 13:55:19
+{ "offers": [ "147", "205", "196", "193", "192" ], "text": "Here are some coffee deals you can enjoy in Abu Dhabi." }
+Test Case
+73
+Input
+Unknown card type — movie offers in UAE
+Reference
+Do not mention any card names/filters; still return UAE cinema [94,95,96]; one sentence + IDs; cap 5.
+Run 1
+
+22/08/2025 - 13:45:52
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie offers you might enjoy in the UAE." }
+Run 2
+
+22/08/2025 - 13:55:15
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie offers you can enjoy in the UAE." }
+Test Case
+74
+Input
+Coffee offers in UAE — I already got [147,156,161,241,206,207,211], show more.
+Reference
+Respond with 'No additional offers are available for your request in your location.' (pagination exhaustion).
+Run 1
+
+22/08/2025 - 13:45:48
+{ "offers": [ "236", "166", "107", "159", "140" ], "text": "Here are some additional coffee offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:55:12
+{ "offers": [ "107", "236", "140" ], "text": "Here are some additional coffee offers you might find interesting in the UAE." }
+Test Case
+75
+Input
+Coffee offers in UAE — I already got [147,156,211], show more.
+Reference
+Return UAE coffee IDs excluding [147,156,211], choosing among [161,241,206,207]; cap 5; no repeats.
+Run 1
+
+22/08/2025 - 13:45:42
+{ "offers": [ "207", "241", "144", "206", "161" ], "text": "Here are some additional coffee offers in the UAE you might find interesting." }
+Run 2
+
+22/08/2025 - 13:55:08
+{ "offers": [ "207", "241", "161", "236", "205" ], "text": "Here are some additional coffee offers you might be interested in across the UAE." }
+Test Case
+76
+Input
+Coffee deals in Dubai Marina
+Reference
+Prefer UAE coffee with Dubai Marina/JBR (e.g., 206) then fill from UAE coffee set; cap 5.
+Run 1
+
+22/08/2025 - 13:45:35
+{ "offers": [], "text": "No offers are currently available for coffee in Dubai Marina." }
+Run 2
+
+22/08/2025 - 13:55:04
+{ "offers": [], "text": "No offers are currently available for coffee in Dubai Marina." }
+Test Case
+77
+Input
+Coffee offers in UAE
+Reference
+Return only UAE coffee/café IDs (subset of [147,156,161,241,206,207,211]); cap 5; exclude unrelated items.
+Run 1
+
+22/08/2025 - 13:45:31
+{ "offers": [ "156", "147", "211", "241", "207" ], "text": "Here are some coffee offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:59
+{ "offers": [ "156", "147", "211", "241", "207" ], "text": "Here are some coffee offers available in the UAE." }
+Test Case
+78
+Input
+Entertainment in UAE (not movies)
+Reference
+Return non-cinema ENTERTAINMENT (e.g., Ekart 97, Dubai Ice Rink 98 if card constraints allow); exclude cinema IDs.
+Run 1
+
+22/08/2025 - 13:45:25
+{ "offers": [ "141", "194", "128", "130", "195" ], "text": "Here are some entertainment options in the UAE that don't involve movies." }
+Run 2
+
+22/08/2025 - 13:54:56
+{ "offers": [ "141", "65", "194", "128", "130" ], "text": "Here are some entertainment options in the UAE that don't involve movies." }
+Test Case
+79
+Input
+Cinema offers valid this month (UAE)
+Reference
+Return non-expired UAE cinema IDs (e.g., 94,95,96); cap 5.
+Run 1
+
+22/08/2025 - 13:45:20
+{ "offers": [ "96", "95", "94" ], "text": "Here are some cinema offers available in the UAE this month." }
+Run 2
+
+22/08/2025 - 13:54:52
+{ "offers": [ "96", "95", "94" ], "text": "Here are some cinema offers available in the UAE this month." }
+Test Case
+80
+Input
+Movie ticket offers in the UAE
+Reference
+Return ONLY cinema/movie IDs in UAE (e.g., Reel Cinemas 94, Cine Royal 95, Star Cinemas 96). Must not include non-movie entertainment.
+Run 1
+
+22/08/2025 - 13:45:15
+{ "offers": [ "96", "95", "94" ], "text": "Here are some movie ticket offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:48
+{ "offers": [ "96", "95", "94" ], "text": "Here are some offers for movie tickets in the UAE." }
+Test Case
+81
+Input
+I need offers for kids entertainment.
+Reference
+Return child-focused ENTERTAINMENT (e.g., theme parks); avoid generic adult entertainment.
+Run 1
+
+22/08/2025 - 13:45:10
+{ "offers": [ "63", "102", "64" ], "text": "Here are some offers for kids entertainment that you might find interesting." }
+Run 2
+
+22/08/2025 - 13:54:45
+{ "offers": [ "63", "102", "64" ], "text": "Here are some offers for kids entertainment in the UAE." }
+Test Case
+82
+Input
+Any offers near me?
+Reference
+Prioritize user country (Netherlands). If none exist, trigger 'no local offers' flow.
+Run 1
+
+22/08/2025 - 13:45:05
+{ "offers": [], "text": "Could you tell me a bit more about the kind of offers you have in mind?" }
+Run 2
+
+22/08/2025 - 13:54:41
+{ "offers": [ "140", "155", "186", "148", "206" ], "text": "Here are some offers you might find interesting in Dubai." }
+Test Case
+83
+Input
+What's available in the UAE?
+Reference
+Return up to 5 UAE offers because the user explicitly asked for UAE (even if user is abroad).
+Run 1
+
+22/08/2025 - 13:45:01
+{ "offers": [], "text": "Could you tell me a bit more about the kind of offers you have in mind? For example, are you interested in dining, travel, or entertainment offers?" }
+Run 2
+
+22/08/2025 - 13:54:37
+{ "offers": [ "216", "91", "81", "123", "82" ], "text": "Here are some offers you can enjoy in the UAE, ranging from electronics to entertainment." }
+Test Case
+84
+Input
+Find me an offer that expired on 20-08-2025.
+Reference
+Do NOT return expired offers; say no offers available for that specific request.
+Run 1
+
+22/08/2025 - 13:44:56
+{ "offers": [], "text": "No offers are currently available with an expiration date of 20-08-2025." }
+Run 2
+
+22/08/2025 - 13:54:34
+{ "offers": [], "text": "No offers are currently available that expired on 20-08-2025." }
+Test Case
+85
+Input
+Find me an offer that expires on 21-08-2025.
+Reference
+Return IDs expiring on 21-08-2025 (still valid on that date); respect expiry rule.
+Run 1
+
+22/08/2025 - 13:44:53
+{ "offers": [], "text": "No offers are currently available with an expiration date of 21-08-2025." }
+Run 2
+
+22/08/2025 - 13:54:31
+{ "offers": [], "text": "No offers are currently available that expire on 21-08-2025." }
+Test Case
+86
+Input
+travle ofers in uae
+Reference
+Correct the typo to 'travel offers' and proceed with UAE travel offers per rules.
+Run 1
+
+22/08/2025 - 13:44:49
+{ "offers": [ "229", "118", "58", "85", "228" ], "text": "Here are some travel offers available in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:27
+{ "offers": [ "229", "118", "58", "85", "228" ], "text": "It looks like you meant 'travel offers.' Here are some offers available for travel in the UAE." }
+Test Case
+87
+Input
+What are the best offers?
+Reference
+Politely decline ranking; offer to help find something specific per prompt rules.
+Run 1
+
+22/08/2025 - 13:44:44
+{ "text": "Could you tell me a bit more about the kind of offers you have in mind?" }
+Run 2
+
+22/08/2025 - 13:54:24
+{ "offers": [ "131", "169", "197", "184" ], "text": "Here are some popular offers you might be interested in." }
+Test Case
+88
+Input
+Offers for GEMS cardholders.
+Reference
+Return only Gems=true offers; do NOT mention 'GEMS' in the text.
+Run 1
+
+22/08/2025 - 13:44:40
+{ "offers": [ "112", "111", "87", "113", "101" ], "text": "Here are some offers for GEMS cardholders in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:20
+{ "offers": [ "112", "111", "87", "113", "101" ], "text": "Here are some offers available for GEMS cardholders in UAE." }
+Test Case
+89
+Input
+Cashback offers for restaurants.
+Reference
+Return FOOD & DRINK IDs where Cashback=true; do NOT say 'Cashback' in the text.
+Run 1
+
+22/08/2025 - 13:44:35
+{ "offers": [ "115", "181", "206", "186", "145" ], "text": "Here are some cashback offers for dining in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:17
+{ "offers": [ "115", "181", "206", "186", "145" ], "text": "Here are some cashback offers for restaurants you might be interested in." }
+Test Case
+90
+Input
+Any deals for my Indulge card?
+Reference
+Return only Indulge=true offers; do NOT mention the card name.
+Run 1
+
+22/08/2025 - 13:44:26
+{ "offers": [ "61", "67", "66", "68", "65" ], "text": "Here are some exciting offers for your Indulge card in the UAE." }
+Run 2
+
+22/08/2025 - 13:54:12
+{ "offers": [ "61", "66", "65", "68", "67" ], "text": "Here are some deals you can enjoy with your card in the UAE." }
+Test Case
+91
+Input
+Find entertainment offers in Dubai.
+Reference
+Return up to 5 ENTERTAINMENT offer IDs scoped to Dubai/UAE per rules; acknowledge Dubai in sentence.
+Run 1
+
+22/08/2025 - 13:44:21
+{ "offers": [ "123", "125", "124", "121", "122" ], "text": "Here are some entertainment offers you can enjoy in Dubai." }
+Run 2
+
+22/08/2025 - 13:54:08
+{ "offers": [ "123", "125", "124", "121", "65" ], "text": "Here are some entertainment offers you can enjoy in Dubai." }
+Test Case
+92
+Input
+I'm looking for fashion deals.
+Reference
+Return up to 5 FASHION offer IDs; use user's keyword in the sentence; cap 5.
+Run 1
+
+22/08/2025 - 13:44:17
+{ "offers": [ "135", "136", "57", "240", "138" ], "text": "Here are some fashion deals you might be interested in." }
+Run 2
+
+22/08/2025 - 13:54:04
+{ "offers": [ "135", "136", "57", "240", "138" ], "text": "Here are some fashion deals you might be interested in." }
+Test Case
+93
+Input
+Show me some dining offers.
+Reference
+Return up to 5 FOOD & DRINK offer IDs valid for user/carrier rules; natural sentence; do NOT use 'related'.
+Run 1
+
+22/08/2025 - 13:44:13
+{ "offers": [ "148", "150", "149", "181", "115" ], "text": "Here are some dining offers you might be interested in." }
+Run 2
+
+22/08/2025 - 13:54:01
+{ "offers": [ "148", "150", "149", "181", "115" ], "text": "Here are some dining offers you might be interested in." }
+Test Case
+94
+Input
+Thank you
+Reference
+Reply briefly (e.g., 'You're welcome!'); no offers.
+Run 1
+
+22/08/2025 - 13:44:09
+{ "offers": [], "text": "No problem! If you need help with any offers, feel free to ask." }
+Run 2
+
+22/08/2025 - 13:53:57
+{ "offers": [], "text": "No problem! Would you like to look at any credit card offers today?" }
+Test Case
+95
+Input
+Hello
+Reference
+Reply with a short greeting and ask how to help; do NOT show offers.
+Run 1
+
+22/08/2025 - 13:44:02
+{ "offers": [], "text": "Hello! If you're interested in exploring credit card offers, feel free to let me know what kind of offers you're looking for." }
+Run 2
+
+22/08/2025 - 13:53:53
+{ "offers": [], "text": "Hello! If you're interested in exploring some exciting offers, feel free to let me know what you're looking for." }
+
+

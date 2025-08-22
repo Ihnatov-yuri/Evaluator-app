@@ -1,0 +1,28 @@
+{
+  "lm_studio": {
+    "base_url": "http://127.0.0.1:1234/v1",
+    "model_name": "gpt-oss-20b-mlx",
+    "api_key": ""
+  },
+  "model_parameters": {
+    "temperature": 0.3,
+    "max_tokens": 1500,
+    "top_p": 0.9,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "reasoning_level": "medium"
+  },
+  "evaluation": {
+    "system_prompt_file": "system_prompt.txt",
+    "user_data_file": "user_test_data.txt", 
+    "knowledge_base_file": "knowledge_base.txt",
+    "timeout_seconds": 30,
+    "retry_attempts": 3,
+    "delay_between_tests": 2
+  },
+  "rag": {
+    "enabled": true,
+    "use_tools": true,
+    "search_depth": "medium"
+  }
+}
