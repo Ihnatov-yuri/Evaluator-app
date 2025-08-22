@@ -18,6 +18,10 @@ evaluation_report.md
 evaluation_report_progress.md
 evaluator.log
 
+# Sensitive data (do not commit)
+user_test_data.txt
+knowledge_base.txt
+
 # Evaluation History - All versioned reports
 evaluation_history/
 evaluation_history/*
