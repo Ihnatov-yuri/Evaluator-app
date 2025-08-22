@@ -11,12 +11,21 @@ __pycache__/
 venv/
 env/
 
-# Generated Files
+# Generated Files - Evaluation Results
 evaluation_results.json
 evaluation_results.csv
 evaluation_report.md
 evaluation_report_progress.md
 evaluator.log
+
+# Evaluation History - All versioned reports
+evaluation_history/
+evaluation_history/*
+evaluation_history/**/*
+
+# Any evaluation report files (catch-all)
+**/evaluation_report*.md
+**/evaluation_results*
 
 # IDE
 .vscode/
