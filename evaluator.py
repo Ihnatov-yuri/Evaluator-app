@@ -645,7 +645,7 @@ Begin evaluation:"""
         # Print each result row
         for tc_result in results:
             test_id = tc_result.test_case.test_id[:7]  # Truncate if too long
-            input_preview = tc_result.test_case.input_text[:38] + "..." if len(tc_result.test_case.input_text) > 38 else tc_result.test_case.input_text
+            input_preview = tc_result.test_case.input_text
             
             for run_result in tc_result.run_results:
                 # Status emoji
@@ -687,9 +687,9 @@ Begin evaluation:"""
             # Show individual runs
             for run_result in tc_result.run_results:
                 print(f"   Run {run_result.test_run.run_number}: {run_result.evaluation} ({run_result.average_score:.1f}/10) - {run_result.test_run.timestamp}")
-                print(f"   Response: {run_result.test_run.response[:100]}...")
+                print(f"   Response: {run_result.test_run.response}")
                 if run_result.reasoning:
-                    print(f"   Reasoning: {run_result.reasoning[:150]}...")
+                    print(f"   Reasoning: {run_result.reasoning}")
                 print()
             
             print("─" * 80)
@@ -844,13 +844,13 @@ Begin evaluation:"""
                 report += f"""
 **Best Run ({best_run.test_run.run_number}):**
 - Score: {best_run.average_score:.1f}/10
-- Response: {best_run.test_run.response[:200]}...
-- Reasoning: {best_run.reasoning[:300]}...
+- Response: {best_run.test_run.response}
+- Reasoning: {best_run.reasoning}
 
 **Worst Run ({worst_run.test_run.run_number}):**
 - Score: {worst_run.average_score:.1f}/10  
-- Response: {worst_run.test_run.response[:200]}...
-- Issues: {worst_run.recommendation[:300]}...
+- Response: {worst_run.test_run.response}
+- Issues: {worst_run.recommendation}
 
 ---
 
@@ -993,8 +993,8 @@ Begin evaluation:"""
         for i, tc_result in enumerate(results, 1):
             report += f"""### ✅ Test Case {i}: {tc_result.test_case.test_id}
 
-**Input:** {tc_result.test_case.input_text[:100]}...  
-**Reference:** {tc_result.test_case.reference_output[:100]}...  
+**Input:** {tc_result.test_case.input_text}  
+**Reference:** {tc_result.test_case.reference_output}  
 **Average Score:** {tc_result.average_score_across_runs:.1f}/10  
 **Runs:** {len(tc_result.run_results)}
 
@@ -1012,7 +1012,7 @@ Begin evaluation:"""
                 report += f"""
 #### {status_emoji} Run {run_result.test_run.run_number} - {run_result.evaluation}
 
-**Response:** {run_result.test_run.response[:200]}...
+**Response:** {run_result.test_run.response}
 
 **Detailed Scores:**
 - Factual Accuracy: {run_result.detailed_scores.factual_accuracy}/10
@@ -1022,13 +1022,13 @@ Begin evaluation:"""
 - Overall Quality: {run_result.detailed_scores.overall_quality}/10
 
 **RAG Verification:**
-{run_result.rag_verification[:300]}...
+{run_result.rag_verification}
 
 **Reasoning:**
-{run_result.reasoning[:400]}...
+{run_result.reasoning}
 
 **Recommendation:**
-{run_result.recommendation[:200]}...
+{run_result.recommendation}
 
 """
             
