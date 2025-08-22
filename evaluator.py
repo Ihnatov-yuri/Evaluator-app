@@ -490,20 +490,247 @@ Begin evaluation:"""
             kb_text = ""
 
         def local_search_knowledge_base(query: str) -> dict:
-            """Very simple text search over the knowledge base text; returns inline citations."""
+            """Structured search with JSON parsing, exact field matching, AND semantics, and ranking.
+
+            - Parses knowledge_base.txt into JSON objects when possible
+            - Matches exact OfferId, booleans (true/false/yes/no), and keywords across key fields
+            - AND semantics for small queries, soft-AND (>=80% tokens) for larger ones
+            - Returns top 20 citations with matched tokens and a compact field summary
+            """
             import re as _re
+            import json as _json
             if not kb_text:
                 return {"citations": [], "summary": "No knowledge base available."}
-            # Split into pseudo-records by braces or newlines; keep simple and robust
-            chunks = [c.strip() for c in _re.split(r"\n\s*\n|}\s*,?\s*{", kb_text) if c.strip()]
-            q = query.lower()
-            hits = []
-            for idx, chunk in enumerate(chunks, start=1):
-                if q in chunk.lower():
-                    hits.append({"id": idx, "text": chunk[:800]})
+
+            # Attempt to parse as multiple JSON objects by brace balancing
+            entries = []
+            buf = []
+            depth = 0
+            for line in kb_text.splitlines():
+                if '{' in line:
+                    depth += line.count('{')
+                if depth > 0:
+                    buf.append(line)
+                if '}' in line and depth > 0:
+                    depth -= line.count('}')
+                    if depth == 0 and buf:
+                        raw = '\n'.join(buf).strip()
+                        buf = []
+                        try:
+                            obj = _json.loads(raw)
+                            entries.append(obj)
+                        except Exception:
+                            # Fallback: keep raw text entry
+                            entries.append(raw)
+            if not entries:
+                # Fallback: naive split
+                entries = [c.strip() for c in _re.split(r"\n\s*\n|}\s*,?\s*{", kb_text) if c.strip()]
+
+            # Parse directives
+            logic_match = _re.search(r"\blogic:(and|or)\b", query, flags=_re.I)
+            logic_mode = logic_match.group(1).lower() if logic_match else "auto"
+            require_pairs = _re.findall(r"\brequire:([A-Za-z][A-Za-z0-9_]+)=([^\s]+)", query)
+            any_pairs = _re.findall(r"\bany:([A-Za-z][A-Za-z0-9_]+)=([^\s]+)", query)
+
+            # Tokenize query (excluding directives)
+            cleaned_query = _re.sub(r"\b(?:logic:(?:and|or)|require:[^\s]+|any:[^\s]+)\b", " ", query)
+            number_tokens = _re.findall(r"\b\d+\b", cleaned_query)
+            bool_tokens = [t.lower() for t in _re.findall(r"\b(true|false|yes|no)\b", cleaned_query, flags=_re.I)]
+            word_tokens = [w.lower() for w in _re.findall(r"[A-Za-z][A-Za-z0-9_]+", cleaned_query)]
+            # Drop noise tokens
+            noise = {"offer", "offers", "id", "ids", "offerid", "offerids"}
+            word_tokens = [w for w in word_tokens if w not in noise]
+
+            def _dedupe(seq):
+                seen = set()
+                out = []
+                for x in seq:
+                    if x not in seen:
+                        seen.add(x)
+                        out.append(x)
+                return out
+            number_tokens = _dedupe(number_tokens)
+            bool_tokens = _dedupe(bool_tokens)
+            word_tokens = _dedupe(word_tokens)
+
+            all_tokens = number_tokens + bool_tokens + word_tokens
+            and_required = len(all_tokens) <= 12
+            # For multi-ID queries, require at least one ID match (OR) plus AND/OR on others based on logic_mode
+            multi_id_mode = len(number_tokens) >= 2
+            non_id_tokens = bool_tokens + word_tokens
+            if logic_mode == "and":
+                min_required_non_id = len(non_id_tokens)
+            elif logic_mode == "or":
+                min_required_non_id = 1 if non_id_tokens else 0
+            else:
+                min_required_non_id = max(0, int(len(non_id_tokens) * (0.8 if not and_required else 1.0)))
+
+            key_priority = {k.lower() for k in [
+                "OfferId", "Merchant", "OfferCategoryTrained", "OfferCountry",
+                "Keywords", "OfferDescription", "OfferDetails", "ApplicableCards"
+            ]}
+
+            # Simple synonyms for categories and locations
+            synonyms = {
+                "dining": ["dining", "food", "food & drink", "restaurant"],
+                "entertainment": ["entertainment", "theme park", "cinema", "movie"],
+                "uae": ["uae", "united arab emirates"]
+            }
+
+            def _norm_bool(val):
+                if isinstance(val, bool):
+                    return 'true' if val else 'false'
+                if isinstance(val, str):
+                    v = val.strip().lower()
+                    if v in ('true', 'yes', 'y', '1'):
+                        return 'true'
+                    if v in ('false', 'no', 'n', '0'):
+                        return 'false'
+                return None
+
+            citations = []
+            for idx, entry in enumerate(entries, start=1):
+                # Unified accessors
+                if isinstance(entry, dict):
+                    entry_lower_map = {str(k).lower(): str(v).lower() for k, v in entry.items()}
+                    entry_text = ' '.join(str(v) for v in entry.values())
+                    entry_lower = entry_text.lower()
+                    offer_id_val = str(entry.get('OfferId', '')).strip()
+                else:
+                    entry_lower_map = {}
+                    entry_lower = entry.lower()
+                    # Try to extract OfferId from raw text
+                    m = _re.search(r"\bofferid\s*:\s*(\d+)\b", entry_lower)
+                    offer_id_val = m.group(1) if m else ''
+
+                score = 0
+                matched = []
+                matched_id_count = 0
+
+                # OfferId exact match gets high weight
+                for n in number_tokens:
+                    if offer_id_val and n == offer_id_val:
+                        score += 10
+                        matched_id_count += 1
+                        matched.append(f"OfferId={n}")
+                    elif n in entry_lower:
+                        score += 1
+                        matched_id_count += 1
+                        matched.append(n)
+
+                # Boolean tokens across any field
+                for b in bool_tokens:
+                    found_bool = False
+                    if isinstance(entry, dict):
+                        for v in entry.values():
+                            nb = _norm_bool(v)
+                            if nb == b:
+                                score += 3
+                                matched.append(b)
+                                found_bool = True
+                                break
+                    if not found_bool and b in entry_lower:
+                        score += 1
+                        matched.append(b)
+
+                # Word tokens across key fields get priority
+                for w in word_tokens:
+                    if isinstance(entry, dict):
+                        hit = False
+                        wlist = synonyms.get(w, [w])
+                        for k, v in entry_lower_map.items():
+                            for needle in wlist:
+                                if needle in v:
+                                    score += 2 if k in key_priority else 1
+                                    matched.append(w)
+                                    hit = True
+                                    break
+                        if not hit:
+                            for needle in wlist:
+                                if needle in entry_lower:
+                                    score += 1
+                                    matched.append(w)
+                                    break
+                    else:
+                        wlist = synonyms.get(w, [w])
+                        for needle in wlist:
+                            if needle in entry_lower:
+                                score += 1
+                                matched.append(w)
+                                break
+
+                # Field-level requires/any matches
+                def _field_contains(field: str, value: str) -> bool:
+                    fld = field.lower()
+                    val = value.lower()
+                    if isinstance(entry, dict):
+                        for k, v in entry_lower_map.items():
+                            if k == fld and val in v:
+                                return True
+                        return False
+                    return (fld in entry_lower) and (val in entry_lower)
+
+                requires_ok = True
+                for f, v in require_pairs:
+                    if not _field_contains(f, v):
+                        requires_ok = False
+                        break
+                if not requires_ok:
+                    continue
+
+                any_ok = True
+                for f, vlist in any_pairs:
+                    options = [p.strip() for p in vlist.split('|') if p.strip()]
+                    if not options:
+                        continue
+                    if not any(_field_contains(f, opt) for opt in options):
+                        any_ok = False
+                        break
+                if not any_ok:
+                    continue
+
+                # Token gating
+                if len(all_tokens) > 0:
+                    unique_matched_non_id = set([m.lower() for m in matched if not m.lower().startswith("offerid=") and not m.isdigit()])
+                    if multi_id_mode:
+                        if matched_id_count < 1:
+                            continue
+                        if len(unique_matched_non_id) < min_required_non_id:
+                            continue
+                    else:
+                        if logic_mode == "and":
+                            min_required = len(all_tokens)
+                        elif logic_mode == "or":
+                            min_required = 1
+                        else:
+                            min_required = max(1, int(len(all_tokens) * (0.8 if not and_required else 1.0)))
+                        unique_matched_all = set([m.lower() for m in matched])
+                        if len(unique_matched_all) < min_required:
+                            continue
+
+                if score > 0:
+                    fields_summary = {}
+                    if isinstance(entry, dict):
+                        for key in ["OfferId", "Merchant", "OfferCategoryTrained", "OfferCountry", "Gems", "Cashback", "Indulge", "Popular"]:
+                            if key in entry:
+                                fields_summary[key] = entry[key]
+                        text_out = _json.dumps(fields_summary or entry, ensure_ascii=False)[:1200]
+                        cid = entry.get('OfferId', idx)
+                    else:
+                        text_out = entry[:1200]
+                        cid = idx
+
+                    citations.append({
+                        "id": cid,
+                        "score": score,
+                        "matched": sorted(set(matched)),
+                        "text": text_out
+                    })
+
+            citations.sort(key=lambda c: c["score"], reverse=True)
             return {
-                "citations": hits[:20],
-                "summary": f"Found {len(hits)} matching chunks for query: {query}"
+                "citations": citations[:20],
+                "summary": f"Query='{query}' tokens={len(all_tokens)} results={len(citations)}"
             }
 
         # Run loop
@@ -604,9 +831,30 @@ Begin evaluation:"""
         logger.info(f"Evaluating test case {test_case.test_id} with {len(test_case.runs)} runs")
         
         run_results = []
+        last_response = None
+        last_result = None
         
         for test_run in test_case.runs:
-            result = self.evaluate_single_run(test_case, test_run)
+            # If identical to previous run's response, duplicate the prior evaluation
+            if last_response is not None and test_run.response.strip() == str(last_response).strip() and last_result is not None:
+                logger.info(f"Run {test_run.run_number}: response identical to previous run; duplicating prior evaluation")
+                duplicated = RunEvaluationResult(
+                    test_case=test_case,
+                    test_run=test_run,
+                    evaluation=last_result.evaluation,
+                    detailed_scores=last_result.detailed_scores,
+                    rag_verification=last_result.rag_verification,
+                    reasoning=f"Duplicated from Run {last_result.test_run.run_number}: {last_result.reasoning}",
+                    recommendation=last_result.recommendation,
+                    processing_time=0.0,
+                    success=last_result.success
+                )
+                result = duplicated
+            else:
+                result = self.evaluate_single_run(test_case, test_run)
+                last_result = result
+                last_response = test_run.response
+            
             run_results.append(result)
             
             # Add delay between runs to avoid overwhelming the system
@@ -1073,9 +1321,13 @@ Begin evaluation:"""
         from datetime import datetime
         
         filename = "evaluation_report_progress.md"
-        # Generate versioned filename
-        versioned_filename = self._get_versioned_filename(filename)
+        # Generate a fresh, timestamped versioned filename on every update
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        versioned_filename = f"evaluation_report_progress_{current_time}.md"
         archive_path = self._get_archive_path(versioned_filename)
+        # Ensure history folder exists
+        import os as _os
+        _os.makedirs(_os.path.dirname(archive_path), exist_ok=True)
         
         # Calculate current statistics
         total_test_cases = len(results)
@@ -1206,7 +1458,6 @@ All test cases have been processed. Check the final report for complete analysis
         
         # Also create a progress snapshot with current timestamp
         if self.config["evaluation"]["versioning"]["enabled"]:
-            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             progress_snapshot = f"evaluation_progress_snapshot_{current_time}_{completed}of{total}.md"
             snapshot_path = self._get_archive_path(progress_snapshot)
             shutil.copy2(archive_path, snapshot_path)
