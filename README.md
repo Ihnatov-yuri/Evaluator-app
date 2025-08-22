@@ -12,6 +12,156 @@ A comprehensive evaluation system that uses LM Studio server with RAG (Retrieval
 - ✅ **Multiple Export Formats** - JSON and CSV outputs
 - ✅ **Three-Document Architecture** - Clean separation of system prompt, test data, and knowledge base
 
+## 🏗️ **System Architecture**
+
+### **Core Components**
+
+```mermaid
+graph TB
+    A[User Test Data] --> B[LMStudioEvaluator]
+    C[System Prompt] --> B
+    D[Knowledge Base] --> B
+    E[Config] --> B
+    
+    B --> F[LM Studio Server]
+    F --> G[gpt-oss-20b-mlx Model]
+    G --> H[RAG Tools Integration]
+    H --> D
+    
+    B --> I[Evaluation Engine]
+    I --> J[Scoring System]
+    J --> K[Weighted Scores]
+    K --> L[Pass/Fail Logic]
+    
+    B --> M[Version Control System]
+    M --> N[Timestamped Reports]
+    N --> O[evaluation_history/]
+    
+    B --> P[Multiple Output Formats]
+    P --> Q[Progressive Reports]
+    P --> R[Final Reports]
+    P --> S[CSV Export]
+    P --> T[JSON Export]
+```
+
+### **Data Flow Architecture**
+
+1. **📥 Input Processing**
+   - Parse `user_test_data.txt` into `TestCase` objects
+   - Each test case contains multiple `TestRun` instances
+   - Load system prompt and knowledge base
+
+2. **🔄 Evaluation Pipeline**
+   ```
+   TestCase → TestRun → LM Studio API → RAG Verification → Scoring → Results
+   ```
+
+3. **🧮 Scoring System**
+   - **Weighted Algorithm**: Factual Accuracy (60%) + Others (10% each)
+   - **5 Metrics**: Factual Accuracy, Completeness, Order/Sequence, Relevance, Overall Quality
+   - **Scale**: 1-10 for each metric
+   - **Thresholds**: 7.0-10.0 = CORRECT, 4.0-6.9 = PARTIAL, 1.0-3.9 = INCORRECT
+
+4. **📊 Real-time Reporting**
+   - Progressive updates after each test case
+   - Version-controlled archives with timestamps
+   - Multiple export formats for analysis
+
+### **Integration Points**
+
+#### **LM Studio Server**
+```python
+# API Communication
+client = OpenAI(base_url="http://127.0.0.1:1234/v1")
+response = client.chat.completions.create(
+    model="gpt-oss-20b-mlx",
+    messages=[system_prompt, evaluation_request],
+    tools=[search_knowledge_base],  # RAG integration
+    tool_choice="auto"
+)
+```
+
+#### **RAG Knowledge Base**
+- **Function Calling**: `search_knowledge_base(query)` 
+- **Verification**: Cross-reference facts, offer IDs, sequences
+- **LM Studio Tools**: Native RAG integration via tools parameter
+
+#### **Version Control System**
+```
+evaluation_history/
+├── evaluation_results_20250822_143022.json
+├── evaluation_results_20250822_143022.csv
+├── evaluation_report_20250822_143022.md
+└── evaluation_report_progress_20250822_143022.md
+```
+
+### **Class Hierarchy**
+
+```python
+@dataclass
+class TestRun:              # Single LLM response with timestamp
+    run_number: int
+    response: str
+    timestamp: str
+
+@dataclass  
+class TestCase:             # Test input with multiple runs
+    test_id: str
+    input_text: str
+    reference_output: str
+    runs: List[TestRun]
+
+@dataclass
+class DetailedScores:       # 5-metric scoring breakdown
+    factual_accuracy: int   # 60% weight
+    completeness: int       # 10% weight
+    order_sequence: int     # 10% weight
+    relevance: int         # 10% weight
+    overall_quality: int   # 10% weight
+
+@dataclass
+class RunEvaluationResult:  # Results for single run
+    evaluation: str         # CORRECT/PARTIAL/INCORRECT
+    detailed_scores: DetailedScores
+    rag_verification: str
+    reasoning: str
+    average_score: float    # Weighted average
+
+@dataclass
+class TestCaseResult:       # Aggregated results for test case
+    test_case: TestCase
+    run_results: List[RunEvaluationResult]
+    average_score_across_runs: float
+    best_run_score: float
+    worst_run_score: float
+```
+
+### **Configuration Management**
+
+```json
+{
+  "lm_studio": {
+    "base_url": "http://127.0.0.1:1234/v1",
+    "model_name": "gpt-oss-20b-mlx"
+  },
+  "model_parameters": {
+    "temperature": 0.3,
+    "reasoning_level": "medium"
+  },
+  "evaluation": {
+    "versioning": {
+      "enabled": true,
+      "date_format": "%Y%m%d_%H%M%S",
+      "archive_folder": "evaluation_history"
+    }
+  },
+  "rag": {
+    "enabled": true,
+    "use_tools": true
+  }
+}
+```
+
 ## 📁 **File Structure**
 
 ```

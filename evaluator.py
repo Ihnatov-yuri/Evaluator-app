@@ -269,7 +269,10 @@ Begin evaluation:"""
             # Add RAG instruction if enabled
             rag_instruction = ""
             if self.config["rag"]["enabled"]:
-                rag_instruction = " Use your knowledge base and available tools to provide accurate, well-researched answers."
+                if self.config["rag"].get("use_plugin") == "rag-v1":
+                    rag_instruction = " RAG-v1 plugin will provide citations from the knowledge base. Use these citations to verify facts and reference them in your reasoning."
+                else:
+                    rag_instruction = " Use your knowledge base and available tools to provide accurate, well-researched answers."
             
             messages = [
                 {
@@ -290,14 +293,15 @@ Begin evaluation:"""
                 "presence_penalty": self.config["model_parameters"]["presence_penalty"]
             }
             
-            # Add tools for RAG if enabled (LM Studio uses tools parameter)
-            if self.config["rag"]["enabled"] and self.config["rag"]["use_tools"]:
+            # Add RAG tools if using RAG-v1 plugin
+            if self.config["rag"]["enabled"] and self.config["rag"].get("use_plugin") == "rag-v1":
+                # RAG-v1 plugin still needs tools parameter to trigger
                 request_params["tools"] = [
                     {
                         "type": "function",
                         "function": {
                             "name": "search_knowledge_base",
-                            "description": "Search the knowledge base for factual information",
+                            "description": "Search the knowledge base for offer information, IDs, and factual data",
                             "parameters": {
                                 "type": "object",
                                 "properties": {
@@ -313,33 +317,71 @@ Begin evaluation:"""
                 ]
                 request_params["tool_choice"] = "auto"
             
-            response = self.client.chat.completions.create(**request_params)
+            # Add timeout to prevent hanging on incomplete responses
+            response = self.client.chat.completions.create(
+                timeout=self.config["evaluation"]["timeout_seconds"],
+                **request_params
+            )
             
             return response.choices[0].message.content.strip()
             
         except Exception as e:
-            logger.error(f"Error getting model response: {e}")
-            raise
+            if "timeout" in str(e).lower():
+                logger.error(f"Model response timeout after {self.config['evaluation']['timeout_seconds']}s: {e}")
+                return f"Error: Model response timeout - RAG cycle may be incomplete"
+            else:
+                logger.error(f"Error getting model response: {e}")
+                return f"Error: {e}"
     
     def _evaluate_response(self, test_case: TestCase, test_run: TestRun) -> tuple[str, DetailedScores, str, str, str]:
         """Evaluate the model's response against expected output with detailed breakdown"""
         try:
             evaluation_prompt = self._create_evaluation_prompt(test_case, test_run)
             
+            # Create fresh messages for each evaluation to avoid chat history contamination
             messages = [
                 {"role": "system", "content": self.prompt_template},
                 {"role": "user", "content": evaluation_prompt}
             ]
             
-            response = self.client.chat.completions.create(
-                model=self.config["lm_studio"]["model_name"],
-                messages=messages,
-                temperature=0.1,  # Lower temperature for more consistent evaluation
-                max_tokens=1500  # Increased for detailed response
-            )
+            # Add explicit instruction to start fresh evaluation
+            if self.config["rag"]["enabled"] and self.config["rag"].get("use_plugin") == "rag-v1":
+                messages[0]["content"] += "\n\nIMPORTANT: This is a fresh evaluation. Ignore any previous chat history and evaluate this specific case independently using current knowledge base citations."
             
-            evaluation_text = response.choices[0].message.content.strip()
+            # Prepare request parameters
+            request_params = {
+                "model": self.config["lm_studio"]["model_name"],
+                "messages": messages,
+                "temperature": 0.1,  # Lower temperature for more consistent evaluation
+                "max_tokens": self.config.get("model_parameters", {}).get("max_tokens", 5500)
+            }
             
+            # Add RAG tools if using RAG-v1 plugin
+            if self.config["rag"]["enabled"] and self.config["rag"].get("use_plugin") == "rag-v1":
+                request_params["tools"] = [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "search_knowledge_base", 
+                            "description": "Search the knowledge base for offer information, IDs, and factual data",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The search query for the knowledge base"
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        }
+                    }
+                ]
+                request_params["tool_choice"] = "auto"
+            
+            # Tool-call handling loop: continue until model returns final content
+            evaluation_text = self._run_chat_with_tools(messages, request_params).strip()
+
             # Parse structured response
             return self._parse_structured_evaluation(evaluation_text)
             
@@ -381,7 +423,14 @@ Begin evaluation:"""
             )
             
             # Verify evaluation consistency with numerical scores
-            avg_score = scores.average_score
+            # Calculate weighted average manually since scores is a DetailedScores object
+            avg_score = (
+                scores.factual_accuracy * 0.60 +  # 60%
+                scores.completeness * 0.10 +       # 10%
+                scores.order_sequence * 0.10 +     # 10%
+                scores.relevance * 0.10 +          # 10%
+                scores.overall_quality * 0.10      # 10%
+            )
             if avg_score >= 7 and evaluation not in ["CORRECT"]:
                 logger.warning(f"Score {avg_score:.1f} suggests CORRECT but got {evaluation}. Adjusting to CORRECT.")
                 evaluation = "CORRECT"
@@ -409,15 +458,107 @@ Begin evaluation:"""
             
         except Exception as e:
             logger.warning(f"Error parsing structured evaluation: {e}")
+            logger.debug(f"Raw evaluation text: {evaluation_text[:500]}...")  # Log first 500 chars for debugging
             reasoning = evaluation_text  # Fallback to full text
+            
+            # If we got empty/invalid scores, set minimum reasonable defaults
+            if all(score == 0 for score in [scores.factual_accuracy, scores.completeness, scores.order_sequence, scores.relevance, scores.overall_quality]):
+                logger.warning("All scores are 0 - setting minimum reasonable defaults")
+                scores = DetailedScores(1, 1, 1, 1, 1)  # Minimum 1/10 instead of 0/10
         
         return evaluation, scores, rag_verification, reasoning, recommendation
+
+    def _run_chat_with_tools(self, messages: list[dict], request_params: dict) -> str:
+        """Run chat, executing function tool calls locally until a final assistant message is produced.
+
+        This prevents infinite server loops by:
+        - Intercepting tool_calls
+        - Executing search_knowledge_base locally against knowledge_base_file
+        - Appending the tool result as a function message
+        - Repeating until the assistant returns content with finish_reason == 'stop'
+        """
+        import json
+        from pathlib import Path
+
+        # Load knowledge base once
+        kb_path = self.config["evaluation"]["knowledge_base_file"]
+        try:
+            with open(kb_path, "r", encoding="utf-8") as f:
+                kb_text = f.read()
+        except Exception as e:
+            logger.warning(f"Failed to read knowledge base '{kb_path}': {e}")
+            kb_text = ""
+
+        def local_search_knowledge_base(query: str) -> dict:
+            """Very simple text search over the knowledge base text; returns inline citations."""
+            import re as _re
+            if not kb_text:
+                return {"citations": [], "summary": "No knowledge base available."}
+            # Split into pseudo-records by braces or newlines; keep simple and robust
+            chunks = [c.strip() for c in _re.split(r"\n\s*\n|}\s*,?\s*{", kb_text) if c.strip()]
+            q = query.lower()
+            hits = []
+            for idx, chunk in enumerate(chunks, start=1):
+                if q in chunk.lower():
+                    hits.append({"id": idx, "text": chunk[:800]})
+            return {
+                "citations": hits[:20],
+                "summary": f"Found {len(hits)} matching chunks for query: {query}"
+            }
+
+        # Run loop
+        while True:
+            response = self.client.chat.completions.create(
+                timeout=self.config["evaluation"]["timeout_seconds"],
+                **request_params
+            )
+            choice = response.choices[0]
+            msg = choice.message
+
+            # If we have final content, return it
+            if getattr(choice, "finish_reason", "stop") == "stop" and (msg.content and not getattr(msg, "tool_calls", None)):
+                return msg.content
+
+            tool_calls = getattr(msg, "tool_calls", []) or []
+            if not tool_calls:
+                # Fallback: if no tools, but empty content, return empty to avoid hang
+                return msg.content or ""
+
+            # Execute only the first tool call to prevent loops
+            tool_call = tool_calls[0]
+            fn_name = tool_call.function.name
+            try:
+                fn_args = json.loads(tool_call.function.arguments or "{}")
+            except Exception:
+                fn_args = {}
+
+            if fn_name == "search_knowledge_base":
+                result = local_search_knowledge_base(fn_args.get("query", ""))
+            else:
+                result = {"error": f"Unknown tool: {fn_name}"}
+
+            # Append tool result as function message and continue
+            messages.append({
+                "role": "tool",
+                "tool_call_id": getattr(tool_call, "id", "1"),
+                "name": fn_name,
+                "content": json.dumps(result, ensure_ascii=False)
+            })
+            # Update request with new messages
+            request_params = {
+                **request_params,
+                "messages": messages
+            }
     
     def evaluate_single_run(self, test_case: TestCase, test_run: TestRun) -> RunEvaluationResult:
         """Evaluate a single run of a test case"""
         start_time = time.time()
         
         try:
+            # Clear any previous chat context for fresh evaluation
+            if self.config["rag"]["enabled"] and self.config["rag"].get("use_plugin") == "rag-v1":
+                logger.debug("Starting fresh evaluation session")
+            
             logger.info(f"Processing test case {test_case.test_id}, Run {test_run.run_number}")
             
             # Evaluate the response with detailed breakdown
@@ -1062,6 +1203,14 @@ All test cases have been processed. Check the final report for complete analysis
         # Copy to current filename if keep_latest_copy is enabled
         if self.config["evaluation"]["versioning"]["enabled"] and self.config["evaluation"]["versioning"]["keep_latest_copy"]:
             shutil.copy2(archive_path, filename)
+        
+        # Also create a progress snapshot with current timestamp
+        if self.config["evaluation"]["versioning"]["enabled"]:
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            progress_snapshot = f"evaluation_progress_snapshot_{current_time}_{completed}of{total}.md"
+            snapshot_path = self._get_archive_path(progress_snapshot)
+            shutil.copy2(archive_path, snapshot_path)
+            logger.info(f"Progress snapshot saved: {snapshot_path}")
         
         logger.info(f"Progressive report updated: {completed}/{total} test cases completed")
         logger.info(f"Report saved to {archive_path}")
